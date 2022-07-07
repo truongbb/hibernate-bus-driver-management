@@ -34,7 +34,7 @@ public class BusLineRepository {
     public BusLine findById(int busLineId) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         return session.createQuery("from BusLine where id = :p_id", BusLine.class)
-                .setParameter("p_id", busLineId)
+                .setParameter("p_id", (long) busLineId)
                 .getSingleResult();
 
     }

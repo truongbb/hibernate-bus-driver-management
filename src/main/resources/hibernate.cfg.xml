@@ -18,5 +18,6 @@
 
         <mapping class="com.github.truongbb.hibernate.bus.driver.management.entity.Driver"/>
         <mapping class="com.github.truongbb.hibernate.bus.driver.management.entity.BusLine"/>
+        <mapping class="com.github.truongbb.hibernate.bus.driver.management.entity.DriverBusManagement"/>
     </session-factory>
 </hibernate-configuration>

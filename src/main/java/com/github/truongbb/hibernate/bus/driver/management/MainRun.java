@@ -9,9 +9,9 @@ import java.util.Scanner;
 
 public class MainRun {
 
-    private static final DriverService driverService = new DriverService();
-    private static final BusLineService busLineService = new BusLineService();
-    private static final DriverBusManagementService driverBusManagementService = new DriverBusManagementService();
+    public static final DriverService driverService = new DriverService();
+    public static final BusLineService busLineService = new BusLineService();
+    public static final DriverBusManagementService driverBusManagementService = new DriverBusManagementService();
 
     public static void main(String[] args) {
         init();
@@ -49,6 +49,7 @@ public class MainRun {
                     driverBusManagementService.showAll();
                     break;
                 case 7:
+                    driverBusManagementService.sort();
                     break;
                 case 9:
                     return;

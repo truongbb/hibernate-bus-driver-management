@@ -1,6 +1,8 @@
 package com.github.truongbb.hibernate.bus.driver.management.logic_handle;
 
+import com.github.truongbb.hibernate.bus.driver.management.MainRun;
 import com.github.truongbb.hibernate.bus.driver.management.dto.DriverBusManagementDto;
+import com.github.truongbb.hibernate.bus.driver.management.dto.DriverBusManagementTempDto;
 import com.github.truongbb.hibernate.bus.driver.management.entity.BusLine;
 import com.github.truongbb.hibernate.bus.driver.management.entity.Driver;
 import com.github.truongbb.hibernate.bus.driver.management.entity.DriverBusManagement;
@@ -14,8 +16,6 @@ public class DriverBusManagementService implements DataInitializing {
 
     private final DriverBusManagementRepository driverBusManagementRepository = new DriverBusManagementRepository();
 
-    private final DriverService driverService = new DriverService();
-    private final BusLineService busLineService = new BusLineService();
 
     private List<DriverBusManagementDto> driverBusManagementDtos;
 
@@ -38,27 +38,43 @@ public class DriverBusManagementService implements DataInitializing {
             return Collections.emptyList();
         }
 
-        List<DriverBusManagementDto> driverBusManagementDtos = new ArrayList<>();
+        List<DriverBusManagementTempDto> driverBusManagementTempDtos = new ArrayList<>();
 
-        Map<Driver, Map<BusLine, Integer>> tempMap = driverBusManagements
+        driverBusManagements.forEach(driverBusManagement -> {
+            Long driverId = driverBusManagement.getDriverId();
+            Driver driver = MainRun.driverService.findById(Math.toIntExact(driverId));
+            Long busLineId = driverBusManagement.getBusLineId();
+            BusLine busLine = MainRun.busLineService.findById(Math.toIntExact(busLineId));
+            Integer roundNumber = driverBusManagement.getRoundNumber();
+            driverBusManagementTempDtos.add(new DriverBusManagementTempDto(driver, busLine, roundNumber));
+        });
+
+        Map<Driver, Map<BusLine, Integer>> tempMap = driverBusManagementTempDtos
                 .stream()
-                .collect(Collectors.groupingBy(
-                        DriverBusManagement::getDriver,
-                        Collectors.toMap(DriverBusManagement::getBusLine, DriverBusManagement::getRoundNumber)
-                ));
+                .collect(
+                        Collectors.groupingBy(
+                                DriverBusManagementTempDto::getDriver,
+                                Collectors.toMap(DriverBusManagementTempDto::getBusLine, DriverBusManagementTempDto::getRound)
+                        )
+                );
 
-        tempMap.forEach((key, value) -> driverBusManagementDtos.add(new DriverBusManagementDto(key, value)));
-        return driverBusManagementDtos;
+        final List<DriverBusManagementDto> result = new ArrayList<>();
+        tempMap.forEach((key, value) -> {
+            DriverBusManagementDto driverBusManagementDto = new DriverBusManagementDto(key, value);
+            driverBusManagementDto.setTotalDistance();
+            result.add(driverBusManagementDto);
+        });
+        return result;
     }
 
     public List<DriverBusManagement> toEntity(List<DriverBusManagementDto> driverBusManagementDtos) {
         final List<DriverBusManagement> driverBusManagements = new ArrayList<>();
         driverBusManagementDtos.forEach(management -> {
-            DriverBusManagement temp = new DriverBusManagement();
             Driver driver = management.getDriver();
-            temp.setDriver(driver);
             management.getAssignedBuses().forEach((key, value) -> {
-                temp.setBusLine(key);
+                DriverBusManagement temp = new DriverBusManagement();
+                temp.setDriverId(driver.getId());
+                temp.setBusLineId(key.getId());
                 temp.setRoundNumber(value);
                 driverBusManagements.add(temp);
             });
@@ -71,7 +87,7 @@ public class DriverBusManagementService implements DataInitializing {
     }
 
     public void createNew() {
-        if (driverService.isEmptyDriver() || busLineService.isEmptyBusLine()) {
+        if (MainRun.driverService.isEmptyDriver() || MainRun.busLineService.isEmptyBusLine()) {
             System.out.println("Chưa có thông tin tài xế hoặc tuyến xe, vui lòng nhập tài xế hoặc tuyến xe trước.");
             return;
         }
@@ -138,7 +154,7 @@ public class DriverBusManagementService implements DataInitializing {
                     }
                     System.out.print("Mã tuyến phải là số dương, vui lòng nhập lại: ");
                 } while (true);
-                busLine = busLineService.findById(busLineId);
+                busLine = MainRun.busLineService.findById(busLineId);
                 if (!DataUtil.isEmptyObject(busLine)) {
                     break;
                 }
@@ -186,13 +202,56 @@ public class DriverBusManagementService implements DataInitializing {
                 System.out.print("Mã tài xế phải là số dương, vui lòng nhập lại: ");
             } while (true);
 
-            driver = driverService.findById(driverId);
+            driver = MainRun.driverService.findById(driverId);
             if (!DataUtil.isEmptyObject(driver)) {
                 break;
             }
             System.out.println("Không tìm thấy tài xế có mã " + driverId + ", vui lòng nhập lại: ");
         } while (true);
         return driver;
+    }
+
+    public void sort() {
+        if (MainRun.driverService.isEmptyDriver() || MainRun.busLineService.isEmptyBusLine()) {
+            System.out.println("Chưa có thông tin tài xế hoặc tuyến xe, vui lòng nhập tài xế hoặc tuyến xe trước.");
+            return;
+        }
+        System.out.println("Sắp xếp danh sách phân công lái xe theo: ");
+        System.out.println(" 1. Họ tên lái xe");
+        System.out.println(" 2. Số tuyến đảm nhận trong ngày (giảm dần)");
+        System.out.print("Vui lòng nhập lựa chọn: ");
+        int choice = -1;
+        do {
+            try {
+                choice = new Scanner(System.in).nextInt();
+            } catch (InputMismatchException ex) {
+                System.out.print("Giá trị cần nhập là một số nguyên, vui lòng nhập lại: ");
+                continue;
+            }
+            if (choice == 1 || choice == 2) {
+                break;
+            }
+            System.out.print("Giá trị lựa chọn không tồn tại, vui lòng nhập lại: ");
+        } while (true);
+
+        switch (choice) {
+            case 1:
+                sortByDriverName();
+                break;
+            case 2:
+                sortByBusLineNumber();
+                break;
+        }
+    }
+
+    private void sortByBusLineNumber() {
+        this.driverBusManagementDtos.sort(Comparator.comparing(DriverBusManagementDto::getTotalDistance).reversed());
+        this.showAll();
+    }
+
+    private void sortByDriverName() {
+        this.driverBusManagementDtos.sort(Comparator.comparing(o -> o.getDriver().getName()));
+        this.showAll();
     }
 
 }

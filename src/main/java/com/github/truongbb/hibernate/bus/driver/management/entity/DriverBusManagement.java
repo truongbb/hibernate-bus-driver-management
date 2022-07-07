@@ -19,12 +19,12 @@ import java.io.Serializable;
 public class DriverBusManagement implements Serializable {
 
     @Id
-    @ManyToOne(targetEntity = Driver.class)
-    Driver driver;
+    @Column(name = "driver_id")
+    Long driverId;
 
     @Id
-    @ManyToOne(targetEntity = BusLine.class)
-    BusLine busLine;
+    @Column(name = "bus_line_id")
+    Long busLineId;
 
     @Column(name = "ROUND_NUMBER", nullable = false)
     Integer roundNumber;

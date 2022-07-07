@@ -34,7 +34,7 @@ public class DriverRepository {
     public Driver findById(int driverId) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         return session.createQuery("from Driver where id = :p_id", Driver.class)
-                .setParameter("p_id", driverId)
+                .setParameter("p_id", (long) driverId)
                 .getSingleResult();
     }
 }
